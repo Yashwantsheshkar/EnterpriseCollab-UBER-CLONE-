@@ -14,7 +14,7 @@ struct RideDetailsView: View {
                     Text("Ride Fare")
                         .font(.headline)
                         .foregroundColor(.gray)
-                    Text("$\(ride.fare, specifier: "%.2f")")
+                    Text("₹\(ride.fare, specifier: "%.0f")")
                         .font(.system(size: 48, weight: .bold))
                         .foregroundColor(.green)
                 }

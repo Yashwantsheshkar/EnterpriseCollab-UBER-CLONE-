@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ChatView: View {
+    let rideId: String
     let currentUserId: String
     let otherUserId: String
     let otherUserName: String
@@ -13,16 +14,27 @@ struct ChatView: View {
         NavigationView {
             VStack {
                 // Messages List
-                ScrollView {
-                    VStack(spacing: 10) {
-                        ForEach(chatViewModel.currentChat) { message in
-                            MessageBubble(
-                                message: message,
-                                isCurrentUser: message.senderId == currentUserId
-                            )
+                ScrollViewReader { scrollProxy in
+                    ScrollView {
+                        VStack(spacing: 10) {
+                            ForEach(chatViewModel.currentChat) { message in
+                                MessageBubble(
+                                    message: message,
+                                    isCurrentUser: message.senderId == currentUserId
+                                )
+                                .id(message.id)
+                            }
+                        }
+                        .padding()
+                    }
+                    .onChange(of: chatViewModel.currentChat.count) { _ in
+                        // Scroll to latest message
+                        if let lastMessage = chatViewModel.currentChat.last {
+                            withAnimation {
+                                scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            }
                         }
                     }
-                    .padding()
                 }
                 
                 // Input Field
@@ -45,7 +57,7 @@ struct ChatView: View {
                 }
             )
             .onAppear {
-                chatViewModel.loadChat(between: currentUserId, and: otherUserId)
+                chatViewModel.setCurrentRide(rideId)
             }
         }
     }
@@ -59,6 +71,7 @@ struct ChatView: View {
         messageText = ""
     }
 }
+
 
 struct MessageBubble: View {
     let message: Message

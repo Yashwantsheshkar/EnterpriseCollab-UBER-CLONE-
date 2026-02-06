@@ -66,6 +66,7 @@ struct DriverHomeView: View {
                 if let currentUser = authViewModel.currentUser,
                    let ride = rideViewModel.currentRide {
                     ChatView(
+                        rideId: ride.id,
                         currentUserId: currentUser.id,
                         otherUserId: ride.riderId,
                         otherUserName: "Rider"
@@ -107,6 +108,7 @@ struct OnlineToggleStyle: ToggleStyle {
 struct CurrentRideCard: View {
     let ride: Ride
     @EnvironmentObject var rideViewModel: RideViewModel
+    @EnvironmentObject var authViewModel: AuthViewModel
     
     var body: some View {
         VStack(spacing: 15) {
@@ -128,7 +130,32 @@ struct CurrentRideCard: View {
                     .foregroundColor(.red)
             }
             
-            if ride.status == .accepted {
+            // Accept button for requested rides
+            if ride.status == .requested {
+                HStack(spacing: 10) {
+                    Button(action: { rideViewModel.cancelRide() }) {
+                        Text("Decline")
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.red)
+                            .cornerRadius(10)
+                    }
+                    
+                    Button(action: {
+                        if let driverId = authViewModel.currentUser?.id {
+                            rideViewModel.acceptRide(ride, driverId: driverId)
+                        }
+                    }) {
+                        Text("Accept Ride")
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.green)
+                            .cornerRadius(10)
+                    }
+                }
+            } else if ride.status == .accepted {
                 Button(action: { rideViewModel.startRide() }) {
                     Text("Start Ride")
                         .foregroundColor(.white)

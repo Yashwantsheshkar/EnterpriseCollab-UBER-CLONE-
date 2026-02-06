@@ -50,6 +50,14 @@ struct RiderMapView: View {
                 }
             }
         }
+        .onChange(of: rideViewModel.currentRide?.id) { rideId in
+            // Start tracking when ride is accepted
+            if let rideId = rideId, rideViewModel.currentRide?.status == .accepted || rideViewModel.currentRide?.status == .inProgress {
+                locationViewModel.startRideTracking(rideId: rideId)
+            } else if rideId == nil {
+                locationViewModel.stopRideTracking()
+            }
+        }
     }
     
     var annotations: [MapAnnotationItem] {
@@ -71,18 +79,18 @@ struct RiderMapView: View {
                 showLabel: true
             ))
             
-            // Show driver location if ride is accepted
+            // Show driver's live location if ride is accepted/in progress
             if ride.status == .accepted || ride.status == .inProgress {
-                // Simulate driver location
-                let driverLat = ride.pickupLocation.latitude - 0.005
-                let driverLon = ride.pickupLocation.longitude + 0.005
-                items.append(MapAnnotationItem(
-                    id: "driver",
-                    coordinate: CLLocationCoordinate2D(latitude: driverLat, longitude: driverLon),
-                    type: .driver,
-                    label: "Driver",
-                    showLabel: true
-                ))
+                if let driverLocation = locationViewModel.otherUserLocation {
+                    let eta = locationViewModel.etaToOtherUser ?? 0
+                    items.append(MapAnnotationItem(
+                        id: "driver",
+                        coordinate: driverLocation,
+                        type: .driver,
+                        label: "\(eta) min",
+                        showLabel: true
+                    ))
+                }
             }
         }
         
@@ -106,13 +114,14 @@ struct MapAnnotationItem: Identifiable {
     }
     
     enum AnnotationType {
-        case pickup, dropoff, driver
+        case pickup, dropoff, driver, rider
         
         var icon: String {
             switch self {
             case .pickup: return "circle.fill"
             case .dropoff: return "mappin.circle.fill"
             case .driver: return "car.fill"
+            case .rider: return "person.fill"
             }
         }
         
@@ -121,6 +130,7 @@ struct MapAnnotationItem: Identifiable {
             case .pickup: return .green
             case .dropoff: return .red
             case .driver: return .blue
+            case .rider: return .purple
             }
         }
     }

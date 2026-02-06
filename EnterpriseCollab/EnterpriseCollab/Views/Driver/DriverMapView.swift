@@ -48,6 +48,14 @@ struct DriverMapView: View {
                 region.center = newLocation
             }
         }
+        .onChange(of: rideViewModel.currentRide?.id) { rideId in
+            // Start tracking when ride is accepted
+            if let rideId = rideId {
+                locationViewModel.startRideTracking(rideId: rideId)
+            } else {
+                locationViewModel.stopRideTracking()
+            }
+        }
     }
     
     var annotations: [MapAnnotationItem] {
@@ -69,10 +77,22 @@ struct DriverMapView: View {
                 label: "Dropoff",
                 showLabel: true
             ))
+            
+            // Show rider's live location if tracking
+            if let riderLocation = locationViewModel.otherUserLocation {
+                let eta = locationViewModel.etaToOtherUser ?? 0
+                items.append(MapAnnotationItem(
+                    id: "rider",
+                    coordinate: riderLocation,
+                    type: .rider,
+                    label: "\(eta) min",
+                    showLabel: true
+                ))
+            }
         }
         
         // Show available rides
-        for (index, ride) in rideViewModel.availableRides.enumerated() {
+        for ride in rideViewModel.availableRides {
             items.append(MapAnnotationItem(
                 id: "ride-\(ride.id)",
                 coordinate: ride.pickupLocation.coordinate,

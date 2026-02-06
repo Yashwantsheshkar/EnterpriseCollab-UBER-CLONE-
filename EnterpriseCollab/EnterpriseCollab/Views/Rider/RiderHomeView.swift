@@ -58,6 +58,7 @@ struct RiderHomeView: View {
                    let ride = rideViewModel.currentRide,
                    let driverId = ride.driverId {
                     ChatView(
+                        rideId: ride.id,
                         currentUserId: currentUser.id,
                         otherUserId: driverId,
                         otherUserName: "Your Driver"

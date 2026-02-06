@@ -260,14 +260,18 @@ class RideViewModel: ObservableObject {
     }
     
     private func calculateSurgePricing(location: CLLocationCoordinate2D) -> Double {
-        // Dynamic surge pricing based on supply-demand
+        // Surge pricing based on demand - use deterministic calculation to avoid UI flickering
         let demandScore = getDemandMultiplier(for: location)
-        let availableDrivers = Double.random(in: 5...20) // Simulate driver availability
         
-        if availableDrivers < 8 && demandScore > 1.2 {
-            return 1.5 // High surge
-        } else if availableDrivers < 12 && demandScore > 1.1 {
-            return 1.2 // Medium surge
+        // Use a stable value based on location and current hour instead of random
+        // This ensures the same location always gets the same surge during the same hour
+        let hour = Calendar.current.component(.hour, from: Date())
+        let isPeakDemandHour = (8...10).contains(hour) || (18...21).contains(hour)
+        
+        if isPeakDemandHour && demandScore > 1.2 {
+            return 1.5 // High surge during peak hours in high-demand areas
+        } else if isPeakDemandHour && demandScore > 1.0 {
+            return 1.2 // Medium surge during peak hours
         }
         return 1.0 // No surge
     }

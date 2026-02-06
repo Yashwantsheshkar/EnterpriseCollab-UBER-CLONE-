@@ -10,8 +10,19 @@ class LocationViewModel: NSObject, ObservableObject {
     @Published var searchResults: [MKMapItem] = []
     @Published var isSearching = false
     
+    /// Other user's location (driver sees rider location, rider sees driver location)
+    @Published var otherUserLocation: CLLocationCoordinate2D?
+    
+    /// Estimated time to other user in minutes
+    @Published var etaToOtherUser: Int?
+    
+    /// Whether actively tracking for a ride
+    @Published var isTrackingRide = false
+    
     private let locationManager = CLLocationManager()
     private let geocoder = CLGeocoder()
+    private let locationService = LocationService.shared
+    private var cancellables = Set<AnyCancellable>()
     
     override init() {
         super.init()
@@ -22,7 +33,42 @@ class LocationViewModel: NSObject, ObservableObject {
         
         // Set default location (Bengaluru, India)
         userLocation = CLLocationCoordinate2D(latitude: 12.9716, longitude: 77.5946)
+        
+        // Subscribe to LocationService updates
+        locationService.$otherUserLocation
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] location in
+                self?.otherUserLocation = location
+                self?.updateETA()
+            }
+            .store(in: &cancellables)
+        
+        locationService.$isTrackingActive
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$isTrackingRide)
     }
+    
+    // MARK: - Ride Tracking
+    
+    /// Starts tracking for an active ride
+    func startRideTracking(rideId: String) {
+        guard let userLoc = userLocation else { return }
+        locationService.startTracking(rideId: rideId, userLocation: userLoc)
+    }
+    
+    /// Stops tracking when ride completes
+    func stopRideTracking() {
+        locationService.stopTracking()
+        otherUserLocation = nil
+        etaToOtherUser = nil
+    }
+    
+    private func updateETA() {
+        guard let userLoc = userLocation else { return }
+        etaToOtherUser = locationService.estimatedTimeToOtherUser(from: userLoc)
+    }
+    
+    // MARK: - Search
     
     func searchLocation(query: String) {
         guard !query.isEmpty else {
@@ -87,6 +133,11 @@ extension LocationViewModel: CLLocationManagerDelegate {
         guard let location = locations.last else { return }
         userLocation = location.coordinate
         getCurrentLocationAddress()
+        
+        // Update location service if tracking is active
+        if locationService.isTrackingActive {
+            locationService.updateMyLocation(location.coordinate)
+        }
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
